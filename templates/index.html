@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .flex {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            gap: 20px;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            display: inline-block;
+            border: 3px solid black;
+        }
+
+        .wall { background-color: #808080; } /* серый квадрат */
+        .empty { background-color: #FFFFFF; } /* белый квадрат */
+        .player { background-color: #FF0000; } /* красный квадрат */
+        .food { background-color: #008000; } /* зеленый квадрат */
+
+        button {
+            text-align: center;
+        }
+
+        .bold-text {
+            font-weight: bold;
+        }
+
+        .green-text {
+            color: green;
+        }
+
+        .gray-background {
+            background-color: #f0f0f0;
+            padding: 5px;
+            border: 1px solid #ccc;
+            width: 300px;
+            overflow-wrap: break-word;
+            height: 400px;
+            overflow: scroll;
+        }
+    </style>
+</head>
+<body>
+    <div class="flex">
+        <div class="game-board">
+            {% for row in map.map %}
+                {% for cell in row %}
+                    <div class="cell
+                        {% if cell == 0 %}
+                            wall
+                        {% elif cell == 1 %}
+                            empty
+                        {% elif cell == 2 %}
+                            player
+                        {% elif cell == 3 %}
+                            food
+                        {% endif %}
+                    "></div>
+                {% endfor %}
+                <br>
+            {% endfor %}
+        </div>
+        <div class="game-info">
+            <div class="bold-text">Количество ходов: {{ map.player_moves }}</div>
+            <div class="green-text">Осталось еды: {{ map.amount_food }}</div>
+            <div class="gray-background">Хранилище: {{ map.store }}</div>
+        </div>
+    </div>
+
+    <div class="flex">
+        <button onclick="startGame()">Запустить</button>
+    </div>
+
+    <script>
+        let counter = 0;
+        let timeInt
+
+        function startGame() {
+            timeInt = setInterval(function() {
+                if (counter === 3000)
+                    clearInterval(timeInt)
+                fetch('/start_game/')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateGameBoard(data.map);
+                        counter++;
+                    })
+                    .catch(error => console.error('Error:', error));
+            }, 100);
+        }
+
+        function updateGameBoard(data) {
+            console.log(data)
+            if (data["amount_food"] == 0) {
+                console.log('Интервал остановился')
+                clearInterval(timeInt)
+            }
+
+            var newMap = data["map"]
+            // Получаем элемент .game-board
+            var gameBoard = document.querySelector('.game-board');
+
+            // Очищаем текущее содержимое .game-board
+            gameBoard.innerHTML = '';
+
+            // Создаем новые элементы для новой карты
+            for (var i = 0; i < newMap.length; i++) {
+                var rowElement = document.createElement('div');
+                rowElement.classList.add('row');
+
+                for (var j = 0; j < newMap[i].length; j++) {
+                    var cellElement = document.createElement('div');
+                    cellElement.classList.add('cell');
+
+                    // Устанавливаем класс в зависимости от значения в новой карте
+                    if (newMap[i][j] === 0) {
+                        cellElement.classList.add('wall');
+                    } else if (newMap[i][j] === 1) {
+                        cellElement.classList.add('empty');
+                    } else if (newMap[i][j] === 2) {
+                        cellElement.classList.add('player');
+                    } else if (newMap[i][j] === 3) {
+                        cellElement.classList.add('food');
+                    }
+
+                    // Добавляем ячейку в текущую строку
+                    rowElement.appendChild(cellElement);
+                }
+
+                // Добавляем текущую строку в .game-board
+                gameBoard.appendChild(rowElement);
+
+                 // Получаем элемент .game-info
+                var gameInfo = document.querySelector('.game-info');
+
+                // Очищаем текущее содержимое .game-info
+                gameInfo.innerHTML = '';
+
+                var info_div = document.createElement('div');
+                info_div.innerHTML = `<div class="bold-text"> Количество ходов: ${data["player_moves"]}</div><div class="green-text"> Количество еды: ${data["amount_food"]}</div><div class="gray-background"> Хранилище: ${JSON.stringify(data["store"])}</div>`
+
+                gameInfo.appendChild(info_div);
+            }
+        }
+    </script>
+</body>
+</html>
